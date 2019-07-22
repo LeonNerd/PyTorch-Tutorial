@@ -1,0 +1,65 @@
+import torch
+from torch .autograd import Variable
+import torchvision
+import torch.utils.data as Data
+import torch.functional as F
+import torch.nn as nn
+
+
+# Hyper Parameters
+EPOCH = 1
+BATCH_SIZE = 50
+LR = 0.002
+DOWNLOAD_MNIST = True
+
+# Mnist digits dataset
+train_data = torchvision.datasets.MNIST
+print(train_data.train_data.size())
+print(train_data.train_labels.size())
+
+# Data Loader for easy mini-batch return in training, the image batch shape will be (50, 1, 28, 28)
+train_loader = Data.DataLoader(dataset=train_data,batch_size=BATCH_SIZE,shuffle=True)
+
+# pick 2000 samples to speed up testing
+text_data = torchvision.datasets.MNIST(
+    root='./mnist/',
+    train=False
+)
+# shape from (2000, 28, 28) to (2000, 1, 28, 28), value in range(0,1)
+text_x = torch.unsqueeze(text_data.text_data, dim=1).type(torch.FloatTensor)[:2000]/255.
+test_y = test_data.test_labels[:2000]
+
+class CNN(nn.Module):
+    def __init__(self):
+        super(CNN, self).__init__()
+        self.conv1 = nn.Sequential(        # input shape (1, 28, 28)
+            nn.Conv2d(
+                in_channels=1,             # input height
+                out_channels=16,            #n_filters
+                kernel_size=5,              #filters  size
+                stride=1,
+                padding=2,
+            ),                              # 16*28*28
+            nn.ReLU(),                      # 16*28*28
+            nn.MaxPool2d(kernel_size=2)     # 16*14*14
+        )
+        self.conv2 = nn.Sequential(         # input shape (16, 14, 14)
+            nn.Conv2d(16,32,5,1,2),         #32*14*14
+            nn.ReLU(),
+            nn.MaxPool2d(2)                 #32*7*7
+        )
+        self.out = nn.Linear(32 * 7 * 7, 10)    #fully connected layer, output 10 classes
+
+    def forward(self, x):
+        x = self.conv1,
+        x = self.conv2,                 #(batch, 32, 7, 7)
+        x = x.view(x.size(0), -1)       #(batch, 32 * 7 * 7)
+        out = self.out(x)
+        return output, x
+
+
+    cnn = CNN()
+    print(cnn)  # net architecture
+
+optimizer = torch.optim.adam(cnn.parameters(), lr=LR)
+
