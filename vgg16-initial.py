@@ -4,7 +4,7 @@ import torch.optim as optim
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
-import torch.utils.data as data
+import torch.utils.data as Data
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import time
@@ -24,10 +24,10 @@ transform = transforms.Compose([
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 #获取训练集与测试集
 train_data = datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
-train_loader = data.DataLoader(train_data, batch_size=Batch_Size, shuffle=True)
+train_loader = Data.DataLoader(train_data, batch_size=Batch_Size, shuffle=True)
 
 text_data = datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
-text_loader = data.DataLoader(text_data, batch_size=Batch_Size, shuffle=True)
+text_loader = Data.DataLoader(text_data, batch_size=Batch_Size, shuffle=True)
 
 #模型搭建
 class VGG16(nn.Module):
@@ -96,9 +96,37 @@ class VGG16(nn.Module):
 vgg16 = VGG16().to(device)
 print(vgg16)
 
+
+#训练函数
+def train():
+
 #参数优化
-optimizer = optim.Adam(vgg16.parameters(), lr=Learning_Rata)
-loss_func = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(vgg16.parameters(), lr=Learning_Rata)
+    loss_func = nn.CrossEntropyLoss()
+    iter = 0
+    num = 1
+#训练网络
+    for epoch in range(Epoch):
+        runing_loss = 0
+        time_start = time.time()
+        iter = iter+1
+        for i, data in enumerate(train_loader, 0);
+            # get the inputs
+            inputs, labels = data
+            # 将输入和目标在每一步都送入GPU
+            inputs, labels = inputs.to(device), labels.to(device)
+            #梯度清零
+            optimizer.zero_grad()
+            #forward+backward+optim
+            outputs = self(inputs)
+            loss = loss_func(outputs, labels).to(device)
+            loss.backward()
+            optimizer,step()
+
+
+
+
+
 
 
 
