@@ -11,8 +11,8 @@ import time
 
 #设置超参量
 Learning_Rata = 0.001
-Batch_Size = 300
-Epoch = 20
+Batch_Size = 500
+Epoch = 100
 #数据预处理
 transform = transforms.Compose([
     transforms.ToTensor(),
@@ -26,106 +26,133 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 train_data = datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
 train_loader = Data.DataLoader(train_data, batch_size=Batch_Size, shuffle=True)
 
-text_data = datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
-text_loader = Data.DataLoader(text_data, batch_size=Batch_Size, shuffle=True)
+test_data = datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
+test_loader = Data.DataLoader(test_data, batch_size=Batch_Size, shuffle=False)
 
 #模型搭建
 class VGG16(nn.Module):
-    def __init__(self):
+    def __init__(self, num_classes=10):
         super(VGG16, self).__init__()
         # 1 conv layer
-        self.layer1 = nn.Sequential(
+        self.conv = nn.Sequential(
             nn.Conv2d(3, 64, kernel_size=3, padding=1),
-            nn.Conv2d(3, 64, kernel_size=3, padding=1),
-            nn.MaxPool2d(kernel_size=2, padding=2),                  # 64*16*16
+            nn.Conv2d(64, 64, kernel_size=3, padding=1),
+            nn.MaxPool2d(kernel_size=2, stride=2),
             nn.BatchNorm2d(64),
-            nn.ReLU()
-        )
+            nn.ReLU(),
+
         # 2 conv layer
-        self.layer2 = nn.Sequential(
-            nn.Conv2d(64, 128, 3, 1, 1),
-            nn.Conv2d(64, 128, 3, 1, 1),
-            nn.MaxPool2d(2, 2),                                                  #128*8*8
+
+            nn.Conv2d(64, 128, kernel_size=3, padding=1),
+            nn.Conv2d(128, 128, kernel_size=3, padding=1),
+            nn.MaxPool2d(kernel_size=2, stride=2),
             nn.BatchNorm2d(128),
-            nn.ReLU()
-        )
+            nn.ReLU(),
+
         # 3 conv layer
-        self.layer3 = nn.Sequential(
-            nn.Conv2d(128, 256, 3, 1, 1),
-            nn.Conv2d(128, 256, 3, 1, 1),
-            nn.Conv2d(128, 256, 3, 1, 1),
-            nn.MaxPool2d(2, 2),                                                     # 256*4*4
+
+            nn.Conv2d(128, 256, kernel_size=3, padding=1),
+            nn.Conv2d(256, 256, kernel_size=3, padding=1),
+            nn.Conv2d(256, 256, kernel_size=3, padding=1),
+            nn.MaxPool2d(kernel_size=2, stride=2),
             nn.BatchNorm2d(256),
-            nn.ReLU()
-        )
+            nn.ReLU(),
+
         # 4 conv layer
-        self.layer4 = nn.Sequential(
-            nn.Conv2d(256, 512, 3, 1, 1),
-            nn.Conv2d(256, 512, 3, 1, 1),
-            nn.Conv2d(256, 512, 3, 1, 1),
-            nn.MaxPool2d(2, 2),
+
+            nn.Conv2d(256, 512, kernel_size=3, padding=1),
+            nn.Conv2d(512, 512, kernel_size=3, padding=1),
+            nn.Conv2d(512, 512, kernel_size=3, padding=1),
+            nn.MaxPool2d(kernel_size=2, stride=2),
             nn.BatchNorm2d(512),
-            nn.ReLU()
-        )
+            nn.ReLU(),
+
         # 5 conv layer
-        self.layer5 = nn.Sequential(
-            nn.Conv2d(256, 512, 3, 1, 1),
-            nn.Conv2d(256, 512, 3, 1, 1),
-            nn.Conv2d(256, 512, 3, 1, 1),
-            nn.MaxPool2d(2, 2),
+
+            nn.Conv2d(512, 512, kernel_size=3, padding=1),
+            nn.Conv2d(512, 512, kernel_size=3, padding=1),
+            nn.Conv2d(512, 512, kernel_size=3, padding=1),
+            nn.MaxPool2d(kernel_size=2, stride=2),
             nn.BatchNorm2d(512),
-            nn.ReLU()
+            nn.ReLU(),
         )
         # 6 fc layer
-        self.layer6 = nn.Sequential(
-            nn.Linear(512, 10),
-            nn.ReLU(),
-            nn.Dropout2d(0.5)
+        self.linear = nn.Sequential(
+            nn.Linear(512, num_classes),
+            nn.Dropout(0.5),
+            nn.Softmax()
         )
-    def forward(self, x):
-        x = self.layer1(x),
-        x = self.layer2(x),
-        x = self.layer3(x),
-        x = self.layer4(x),
-        x = self.layer5(x),
-        x = x.view(-1, 512*1*1),
-        x = self.layer6(x)
 
-        return x
+    def forward(self, x):
+        out = self.conv(x)
+        out = out.view(-1, 512*1*1)
+        out = self.linear(out)
+
+        return out
+
 
 vgg16 = VGG16().to(device)
 print(vgg16)
 
 
-#训练函数
+# 训练模型
 def train():
 
-#参数优化
-    optimizer = optim.Adam(vgg16.parameters(), lr=Learning_Rata)
+# 参数优化
+    optimizer = optim.SGD(vgg16.parameters(), lr=Learning_Rata, momentum=0.9)
     loss_func = nn.CrossEntropyLoss()
-    iter = 0
-    num = 1
-#训练网络
+    correct = 0
+    total = 0
+# 训练网络
     for epoch in range(Epoch):
-        runing_loss = 0
         time_start = time.time()
-        iter = iter+1
-        for i, data in enumerate(train_loader, 0);
+        runing_loss = 0.0
+
+        for i, data in enumerate(train_loader, 0):
             # get the inputs
             inputs, labels = data
+
             # 将输入和目标在每一步都送入GPU
             inputs, labels = inputs.to(device), labels.to(device)
             #梯度清零
             optimizer.zero_grad()
             #forward+backward+optim
-            outputs = self(inputs)
+            outputs = vgg16(inputs)
             loss = loss_func(outputs, labels).to(device)
             loss.backward()
-            optimizer,step()
+            optimizer.step()
+            #统计数据
+            runing_loss += loss.item()
+            if i % 100 == 99:
+                print('[%d, %5d] loss: %.4f' % (epoch + 1, i + 1, runing_loss / 500))
+                runing_loss = 0.0
+                _, predicted = torch.max(outputs.data, 1)
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
+                print('Accuracy of the network on the %d tran images: %.3f %%' % (total, 100.0 * correct / total))
+        print('epoch %d cost %3f sec' % (epoch, time.time()-time_start))
+    print('Finished Training')
+    #测试模型
+def test():
+    correct = 0
+    total = 0
+    with torch.no_grad():               # 测试集中不需要反向传播
+        for data in test_loader:
+            images, labels = data
+            images, labels = images.to(device), labels.to(device)
+            outputs = vgg16(images)
+            _, predicted = torch.max(outputs.data, 1)            # 返回每一行中最大值的那个元素，且返回其索引
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+    print('Accuracy of the network on the 10000 test images: %.3f %%' % (100.0 * correct / total))
+    # return 100.0 * correct / total
 
 
+torch.save(vgg16, './vgg16model.pkl')
 
-
+if __name__ == '__main__':
+    train()
+    test()
 
 
 
