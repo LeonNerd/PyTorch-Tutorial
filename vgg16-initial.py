@@ -8,6 +8,9 @@ import torch.utils.data as Data
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import time
+import matplotlib.pyplot as plt
+import numpy as np
+
 
 #设置超参量
 Learning_Rata = 0.001
@@ -28,6 +31,33 @@ train_loader = Data.DataLoader(train_data, batch_size=Batch_Size, shuffle=True)
 
 test_data = datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
 test_loader = Data.DataLoader(test_data, batch_size=Batch_Size, shuffle=False)
+
+#分类
+classes = ('plane', 'car', 'bird', 'cat',
+           'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
+
+#打印训练集
+
+def imshow(img):
+    img = img / 2 + 0.5     # unnormalize
+    npimg = img.numpy()
+    plt.imshow(np.transpose(npimg, (1, 2, 0)))
+    plt.show()
+
+
+# get some random training images
+dataiter = iter(train_loader)
+images, labels = dataiter.next()
+
+
+
+# show images
+imshow(torchvision.utils.make_grid(images))
+# print labels
+print(' '.join('%5s' % classes[labels[j]] for j in range(4)))
+
+
+
 
 #模型搭建
 class VGG16(nn.Module):
@@ -132,6 +162,16 @@ def train():
                 print('Accuracy of the network on the %d tran images: %.3f %%' % (total, 100.0 * correct / total))
         print('epoch %d cost %3f sec' % (epoch, time.time()-time_start))
     print('Finished Training')
+    
+#从测试集中显示一个图像
+dataiter = iter(test_loader)
+images, labels = dataiter.next()
+
+# print images
+imshow(torchvision.utils.make_grid(images))
+print('GroundTruth: ', ' '.join('%5s' % classes[labels[j]] for j in range(4)))    
+    
+    
     #测试模型
 def test():
     correct = 0
@@ -153,8 +193,4 @@ torch.save(vgg16, './vgg16model.pkl')
 if __name__ == '__main__':
     train()
     test()
-
-
-
-
 
