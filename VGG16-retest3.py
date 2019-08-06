@@ -15,7 +15,7 @@ import datetime
 modelPath='./myVGGmodel.pkl'
 batch_size=64
 test_batch_size=1
-epochs=100
+epochs=20
 log_interval=100
 #定义Summary_Writer
 writer=SummaryWriter('./Result')  #数据存放在这个文件夹
@@ -206,63 +206,68 @@ def img_show(dataset, index):
     print('img is a ', classes[label])
     show((data + 1) / 2).resize((100, 100)).show()
 
-img_show(tv.utils.make_grid(dataset[index]))
-plt.show()
 
+def main():
 
-
-# 图像数值转换，ToTensor源码注释
-"""Convert a ``PIL Image`` or ``numpy.ndarray`` to tensor.
+    # 图像数值转换，ToTensor源码注释
+    """Convert a ``PIL Image`` or ``numpy.ndarray`` to tensor.
         Converts a PIL Image or numpy.ndarray (H x W x C) in the range
         [0, 255] to a torch.FloatTensor of shape (C x H x W) in the range [0.0, 1.0].
         """
 # 归一化把[0.0, 1.0]变换为[-1,1], ([0, 1] - 0.5) / 0.5 = [-1, 1]
-transform = tv.transforms.Compose([
+
+    transform = tv.transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])])
 
-# 加载数据集（训练集和测试集）
-train_data = tv.datasets.CIFAR10(root='./Cifar-10', train=True, download=True, transform=transform)
-test_data = tv.datasets.CIFAR10(root='./Cifar-10', train=False, download=False, transform=transform)
+    # 加载数据集（训练集和测试集）
+    train_data = tv.datasets.CIFAR10(root='./Cifar-10', train=True, download=True, transform=transform)
+    test_data = tv.datasets.CIFAR10(root='./Cifar-10', train=False, download=False, transform=transform)
 
-train_load = t.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True)
-test_load = t.utils.data.DataLoader(test_data, batch_size=test_batch_size, shuffle=False)
-
-net = VGG16Net().to(device)
-#print(net)
-
-# 如果不训练，直接加载保存的网络参数进行测试集验证
+    train_load = t.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True)
+    test_load = t.utils.data.DataLoader(test_data, batch_size=test_batch_size, shuffle=False)
 
 
-optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
-
-start_time = datetime.datetime.now()
-
-for epoch in range(1, epochs + 1):
-    net_train(net, train_load, optimizer, epoch, log_interval)
-
-    # 每个epoch结束后用测试集检查识别准确度
-    net_test(net, test_load, epoch)
-
-    end_time = datetime.datetime.now()
-
-    #global best_acc
-print('CIFAR10 pytorch VGGNet Train: EPOCH:{}, BATCH_SZ:{}, LR:{}, ACC:{}'.format(epochs, batch_size, 0.001, best_acc))
-print('train spend time: ', end_time - start_time)
-#保存模型
-torch.save(net,'./myVGGmodel')
-
-
-if __name__=='main':
     #如果模型存在，加载模型
     if os.path.exists(modelPath):
         print('model exists')
-        net=torch.load(modelPath)
+        model = torch.load(modelPath)
         print('model loaded')
+        net = model.to(device)
+        #net_test(net, test_load, 0)
     else:
         print('model not exists')
-    print('Training Started')
-    train()
-    writer.close()
+        net = VGG16Net().to(device)
+
+    #net = VGG16Net().cuda()
+    
+    #print(net)
+
+    # 如果不训练，直接加载保存的网络参数进行测试集验证
+
+
+    optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
+
+    start_time = datetime.datetime.now()
+
+    for epoch in range(1, epochs + 1):
+
+        net_train(net, train_load, optimizer, epoch, log_interval)
+
+        # 每个epoch结束后用测试集检查识别准确度
+        net_test(net, test_load, epoch)
+
+        end_time = datetime.datetime.now()
+        #保存模型
+        torch.save(net,'./myVGGmodel.pkl')
+    
+
+    #global best_acc
+    print('CIFAR10 pytorch VGGNet Train: EPOCH:{}, BATCH_SZ:{}, LR:{}, ACC:{}'.format(epochs, batch_size, 0.001, best_acc))
+    print('train spend time: ', end_time - start_time)
     print('Training Finished')
 
+
+if __name__=='__main__':
+   
+    main()
