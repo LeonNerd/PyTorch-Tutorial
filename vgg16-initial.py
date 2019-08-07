@@ -25,7 +25,7 @@ transform = transforms.Compose([
 ]
 )
 # GPU
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 # 获取训练集与测试集
 train_data = datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
 train_loader = Data.DataLoader(train_data, batch_size=Batch_Size, shuffle=True)
@@ -108,15 +108,21 @@ class VGG16Net(nn.Module):
 
         return x
 
-net = VGG16Net().to(device)
+#net = VGG16Net().to(device)
 
 
 if os.path.exists(modelPath):
     print('model exists')
     vgg16 = torch.load(modelPath)
+
     print('model loaded')
+    net = vgg16.cuda()
+
 else:
     print('model not exists')
+    net = VGG16Net().to(device)
+
+
 print('Training Started')
 
 
@@ -145,17 +151,27 @@ def train():
             loss = loss_func(outputs, labels).to(device)
             loss.backward()
             optimizer.step()
+
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
             # 统计数据
             runing_loss += loss.item()
-            if i % 100 == 99:
-                print('[%d, %5d] loss: %.4f' % (epoch + 1, i + 1, runing_loss / 500))
+            if i % 20 == 19:
+                print('[%d, %5d] loss: %.6f' % (epoch + 1, i + 1, runing_loss / 500))
                 runing_loss = 0.0
-                _, predicted = torch.max(outputs.data, 1)
-                total += labels.size(0)
-                correct += (predicted == labels).sum().item()
-                print('Accuracy of the vgg16work on the %d tran images: %.3f %%' % (total, 100.0 * correct / total))
+                #_, predicted = torch.max(outputs.data, 1)
+                #total += labels.size(0)
+                #correct += (predicted == labels).sum().item()
+                print('Accuracy of the vgg16work on the %d train images: %.3f %%' % (total, 100.0 * correct / total))
         print('epoch %d cost %3f sec' % (epoch, time.time() - time_start))
-        torch.save(VGG16Net, './VGG16model.pkl')
+        total = 0
+        correct = 0
+
+        print("save model......")
+        torch.save(net, './VGG16model.pkl')
+
+
     print('Finished Training')
 
 
