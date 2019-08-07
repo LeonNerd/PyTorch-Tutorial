@@ -38,93 +38,82 @@ classes = ('plane', 'car', 'bird', 'cat',
            'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
 
-# # 打印训练集
-#
-# def imshow(img):
-#     img = img / 2 + 0.5  # unnormalize
-#     npimg = img.numpy()
-#     plt.imshow(np.transpose(npimg, (1, 2, 0)))
-#     plt.show()
-#
-#
-# # get some random training images
-# dataiter = iter(train_loader)
-# images, labels = dataiter.next()
-#
-# # show images
-# imshow(torchvision.utils.make_grid(images))
-# # print labels
-# print(' '.join('%5s' % classes[labels[j]] for j in range(4)))
+# 定义网络模型
+'''
+创建VGG块
+参数分别为输入通道数，输出通道数，卷积层个数，是否做最大池化
+'''
+def make_vgg_block(in_channel, out_channel, convs, pool=True):
+    net = []
+
+    # 不改变图片尺寸卷积
+    net.append(nn.Conv2d(in_channel, out_channel, kernel_size=3, padding=1))
+    net.append(nn.BatchNorm2d(out_channel))
+    net.append(nn.ReLU(inplace=True))
+
+    for i in range(convs - 1):
+        # 不改变图片尺寸卷积
+        net.append(nn.Conv2d(out_channel, out_channel, kernel_size=3, padding=1))
+        net.append(nn.BatchNorm2d(out_channel))
+        net.append(nn.ReLU(inplace=True))
+
+    if pool:
+        # 2*2最大池化，图片变为w/2 * h/2
+        net.append(nn.MaxPool2d(2))
+
+    return nn.Sequential(*net)
 
 
-# 模型搭建
-class VGG16(nn.Module):
-    def __init__(self, num_classes=10):
-        super(VGG16, self).__init__()
-        # 1 conv layer
-        self.conv = nn.Sequential(
-            nn.Conv2d(3, 64, kernel_size=3, padding=1),
-            nn.Conv2d(64, 64, kernel_size=3, padding=1),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.BatchNorm2d(64),
+# 定义网络模型
+class VGG16Net(nn.Module):
+    def __init__(self):
+        super(VGG16Net, self).__init__()
+
+        net = []
+
+        # 输入32*32，(32-3+2*1)/2+1=16,输出16*16
+        net.append(make_vgg_block(3, 64, 2))
+
+        # (16-3+2*1)/2+1=8,输出8*8
+        net.append(make_vgg_block(64, 128, 2))
+
+        # (8-3+2*1)/2+1=4,输出4*4
+        net.append(make_vgg_block(128, 256, 3))
+
+        # (4-3+2*1)/2+1=2,输出2*2
+        net.append(make_vgg_block(256, 512, 3))
+
+        # (2-3+2*1)/2+1=1,输出1*1
+        net.append(make_vgg_block(512, 512, 3, True))
+
+        self.cnn = nn.Sequential(*net)
+
+        self.fc = nn.Sequential(
+            # 512个feature，每个feature 2*2
+            nn.Linear(512*1*1, 256),
             nn.ReLU(),
 
-            # 2 conv layer
-
-            nn.Conv2d(64, 128, kernel_size=3, padding=1),
-            nn.Conv2d(128, 128, kernel_size=3, padding=1),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.BatchNorm2d(128),
+            nn.Linear(256, 256),
             nn.ReLU(),
 
-            # 3 conv layer
-
-            nn.Conv2d(128, 256, kernel_size=3, padding=1),
-            nn.Conv2d(256, 256, kernel_size=3, padding=1),
-            nn.Conv2d(256, 256, kernel_size=3, padding=1),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.BatchNorm2d(256),
-            nn.ReLU(),
-
-            # 4 conv layer
-
-            nn.Conv2d(256, 512, kernel_size=3, padding=1),
-            nn.Conv2d(512, 512, kernel_size=3, padding=1),
-            nn.Conv2d(512, 512, kernel_size=3, padding=1),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.BatchNorm2d(512),
-            nn.ReLU(),
-
-            # 5 conv layer
-
-            nn.Conv2d(512, 512, kernel_size=3, padding=1),
-            nn.Conv2d(512, 512, kernel_size=3, padding=1),
-            nn.Conv2d(512, 512, kernel_size=3, padding=1),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.BatchNorm2d(512),
-            nn.ReLU(),
-        )
-        # 6 fc layer
-        self.linear = nn.Sequential(
-            nn.Linear(512, num_classes),
-            nn.Dropout(0.5),
-            nn.Softmax()
+            nn.Linear(256, 10)
         )
 
     def forward(self, x):
-        out = self.conv(x)
-        out = out.view(-1, 512 * 1 * 1)
-        out = self.linear(out)
+        x = self.cnn(x)
 
-        return out
+        # x.size()[0]: batch size
+        x = x.view(x.size()[0], -1)
+        x = self.fc(x)
 
+        return x
 
-vgg16 = VGG16().to(device)
-print(vgg16)
+net = VGG16Net().to(device)
+
 
 if os.path.exists(modelPath):
     print('model exists')
-    net = torch.load(modelPath)
+    vgg16 = torch.load(modelPath)
     print('model loaded')
 else:
     print('model not exists')
@@ -134,7 +123,7 @@ print('Training Started')
 # 训练模型
 def train():
     # 参数优化
-    optimizer = optim.SGD(vgg16.parameters(), lr=Learning_Rata, momentum=0.9)
+    optimizer = optim.SGD(net.parameters(), lr=Learning_Rata, momentum=0.9)
     loss_func = nn.CrossEntropyLoss()
     correct = 0
     total = 0
@@ -152,7 +141,7 @@ def train():
             # 梯度清零
             optimizer.zero_grad()
             # forward+backward+optim
-            outputs = vgg16(inputs)
+            outputs = net(inputs)
             loss = loss_func(outputs, labels).to(device)
             loss.backward()
             optimizer.step()
@@ -164,8 +153,9 @@ def train():
                 _, predicted = torch.max(outputs.data, 1)
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
-                print('Accuracy of the network on the %d tran images: %.3f %%' % (total, 100.0 * correct / total))
+                print('Accuracy of the vgg16work on the %d tran images: %.3f %%' % (total, 100.0 * correct / total))
         print('epoch %d cost %3f sec' % (epoch, time.time() - time_start))
+        torch.save(VGG16Net, './VGG16model.pkl')
     print('Finished Training')
 
 
@@ -186,15 +176,15 @@ def test():
         for data in test_loader:
             images, labels = data
             images, labels = images.to(device), labels.to(device)
-            outputs = vgg16(images)
+            outputs = net(images)
             _, predicted = torch.max(outputs.data, 1)  # 返回每一行中最大值的那个元素，且返回其索引
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
-    print('Accuracy of the network on the 10000 test images: %.3f %%' % (100.0 * correct / total))
+    print('Accuracy of the vgg16work on the 10000 test images: %.3f %%' % (100.0 * correct / total))
     # return 100.0 * correct / total
 
 
-torch.save(vgg16, './vgg16model.pkl')
+
 
 if __name__ == '__main__':
     train()
