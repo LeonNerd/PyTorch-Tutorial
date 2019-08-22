@@ -37,8 +37,9 @@ def pict_transform():
 def txt_write():
     os.chdir('E:/1/Images/')  # 加入Images路径
     file = glob('*/*.jpg')
+    l = []
     for fn in file:  # 确认文件格式
-        l = []
+        
         img = cv2.imdecode(np.fromfile(fn, dtype=np.uint8), -1)
         shape = img.shape
         l.append(shape[1])
