@@ -42,8 +42,9 @@ wcj(files, '2')
 wcj(files, '3')
 os.chdir('E:/1/Images/')  # 加入image的路径
 file = glob('*/*.jpg')
+l = []
 for fn in file:
-    l = []
+    
     img = cv2.imdecode(np.fromfile(fn, dtype=np.uint8), -1)
     sp = img.shape
     l.append(sp[1])  # width(colums) of image
