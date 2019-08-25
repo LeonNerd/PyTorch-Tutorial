@@ -97,8 +97,8 @@ def txt_right_shift(files1):
         f2 = open('../txt_right_shift/' + txt, 'w')       #开启'w'写模式
         with open(txt)as f:  # 返回一个文件对象
             list = f.readline()
-            f2.write(list[0] + '\n')
-            for i in range(int(list[0])):
+            f2.write(list)
+            for i in range(int(list)):
                 list1 = f.readline()
                 a = int(list1.split(' ')[0])
                 x1 = int(list1.split(' ')[1])
