@@ -82,8 +82,8 @@ def txt_left_shift(files1):  # 左移后图片坐标信息写入
         f1= open('../txt_left_shift/' + txt, 'w')       #开启'w'写模式
         with open(txt)as f:  # 返回一个文件对象
             list = f.readline()
-            f1.write(list[0] + '\n')
-            for i in range(int(list[0])):
+            f1.write(list)
+            for i in range(int(list)):
                 list1 = f.readline()
                 a = int(list1.split(' ')[0])
                 x1 = int(list1.split(' ')[1])
@@ -113,8 +113,8 @@ def txt_flip(files1,l):
         f3 = open('../txt_flip/' + txt, 'w')
         with open(txt)as f:  # 返回一个文件对象
             list = f.readline()
-            f3.write(list[0] + '\n')
-            for i in range(int(list[0])):
+            f3.write(list)
+            for i in range(int(list)):
                 list1 = f.readline()
                 a = int(list1.split(' ')[0])
                 x1 = int(list1.split(' ')[1])
