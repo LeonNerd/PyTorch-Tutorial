@@ -50,11 +50,12 @@ def txt_write():
         img = cv2.imdecode(np.fromfile(fn, dtype=np.uint8), -1)
         shape = img.shape
         l.append(shape[1])
-    os.chdir('E:/1/labels/')
+    os.chdir('E:/1/labels')
     files1 = glob('*/*.txt')
     # txt_left_shift(files1)
     # txt_right_shift(files1)
-    txt_flip(files1,l)
+    # txt_flip(files1,l)
+    txt_edit(files1, l)
 
 
 # 子函数
@@ -155,11 +156,9 @@ def txt_flip(files1,l):
         f3 = open('../txt_flip/' + txt, 'w')
         with open(txt)as f:  # 返回一个文件对象
             list = f.readline()
-            print(list)
             f3.write(list)
             for i in range(int(list)):
                 list1 = f.readline()
-
                 a = int(list1.split(' ')[0])
                 x2 = int(list1.split(' ')[1])
                 y1 = int(list1.split(' ')[2])
@@ -168,7 +167,28 @@ def txt_flip(files1,l):
                 f3.write(str(a) + ' ' + str(l[q] - x1) + " " + str(y1) + ' ' + str(l[q] - x2) + ' ' + str(y2) + '\n')
         f3.close()
         q += 1
-
+def txt_edit(files1,l):
+    for txt in files1:
+        q = 0
+        f3 = open('../txt_flip/' + txt, 'w')
+        with open(txt)as f:  # 返回一个文件对象
+            list = f.readline()
+            f3.write(list)
+            for i in range(int(list)):
+                list1 = f.readline()
+                a = int(list1.split(' ')[0])
+                x1 = int(list1.split(' ')[1])
+                y1 = int(list1.split(' ')[2])
+                x2 = int(list1.split(' ')[3])
+                y2 = int(list1.split(' ')[4])
+                if a == 1:
+                    a = 2
+                    f3.write(str(a) + ' ' + str(x1) + " " + str(y1) + ' ' + str(x2) + ' ' + str(y2) + '\n')
+                elif a == 2:
+                    a = 1
+                    f3.write(str(a) + ' ' + str(x1) + " " + str(y1) + ' ' + str(x2) + ' ' + str(y2) + '\n')
+        f3.close()
+        q += 1
 def edit_name():
     path = 'E:/1/2/'
     for root, dirs, files in os.walk(path):
@@ -253,20 +273,20 @@ def huakuang():
     cv2.waitKey(0)
 
 if __name__ == '__main__':
-    # creat_folder()
-    # print('creat_folder finish')
+    creat_folder()
+    print('creat_folder finish')
 
     # pict_transform()
     # print('pict_transform finish')
-    #
-    # txt_write()
-    # print('txt_write finish')
+
+    txt_write()
+    print('txt_write finish')
 
     # edit_name()
     # print('edit_name finish')
 
     # video_process()
     # print('video_process finish')
-
-    huakuang()
-    print('huakuang finish')
+    #
+    # huakuang()
+    # print('huakuang finish')
