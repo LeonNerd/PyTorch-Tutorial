@@ -1,14 +1,16 @@
+#此代码可以将xml文件格式转换为yolo格式
 import os
+import glob
 import xml.etree.ElementTree as ET
-label_dict = {'person' : '0','aqm_yc' : '1','aqm_zc' : '2'}
-dirpath = 'E:/6/xml/'  # 原来存放xml文件的目录
-newdir = 'E:/6/yolo/'  # 修改label后形成的txt目录
+label_dict = {'YanHuo' : '0'}
+dirpath =  'H:/data/Huo/'  # 原来存放xml文件的目录
+newdir = 'H:/data/Huo1/'  # 修改label后形成的txt目录
 
 if not os.path.exists(newdir):
     os.makedirs(newdir)
-
-for fp in os.listdir(dirpath):
-    label_name = fp.split('.')[0]+'.'+fp.split('.')[1]+ '.txt'
+os.chdir(dirpath)
+for fp in glob.glob('*.xml'):
+    label_name = fp.split('.')[0]+ '.txt'
 
     root = ET.parse(os.path.join(dirpath, fp)).getroot()  #?
     xmin, ymin, xmax, ymax = 0, 0, 0, 0
@@ -16,9 +18,10 @@ for fp in os.listdir(dirpath):
     width = float(sz[0].text)
     height = float(sz[1].text)
     filename = root.find('filename').text
-
+    print(fp)
     for child in root.findall('object'):  # 找到图片中的所有框
         sub = child.find('bndbox')  # 找到框的标注值并进行读
+        print(child.find('name').text)
         label = label_dict[child.find('name').text]
         xmin = float(sub[0].text)
         ymin = float(sub[1].text)
